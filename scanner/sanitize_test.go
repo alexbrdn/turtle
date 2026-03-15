@@ -50,6 +50,22 @@ var sanitizeTestCases = map[string]struct {
 		token: "http://example.org/path",
 		typ:   "iri",
 	},
+	"escaped-quotes": {
+		input: `"a string with escaped \"double quotes\""`,
+		token: `a string with escaped \"double quotes\"`,
+		typ:   "literal",
+	},
+	"single-quote": {
+		input: `"someone's single quote"`,
+		token: `someone's single quote`,
+		typ:   "literal",
+	},
+	"empty-typed-literal": {
+		input:    `""^^qudt:LatexString`,
+		token:    ``,
+		datatype: `qudt:LatexString`,
+		typ:      "literal",
+	},
 }
 
 func TestSanitize(t *testing.T) {

@@ -50,9 +50,14 @@ func splitTurtle(data []byte, atEOF bool) (advance int, token []byte, err error)
 		escaped := escapedCharacter(runeBuffer)
 		// if the last characters were literals, switch the multiline
 		// literal and literal state
-		if multilineLiteralEdge {
-			inMultiLineLiteral = !inMultiLineLiteral
-			literal = !literal
+		if multilineLiteralEdge && !escaped {
+			if !inMultiLineLiteral && !literal {
+				inMultiLineLiteral = true
+				literal = true
+			} else if inMultiLineLiteral {
+				inMultiLineLiteral = false
+				literal = false
+			}
 		}
 
 		// if we bump to space character, we return the word, unless there is a literal started
@@ -111,15 +116,25 @@ func splitTurtle(data []byte, atEOF bool) (advance int, token []byte, err error)
 		// if bumbed into quotation mark and not in apostrophe literal,
 		// switch the literal and quotation mark state
 		if r == runeQuotation && !apostrophe && !inMultiLineLiteral && !multilineLiteralEdge && !escaped { // "
-			literal = !literal
-			quotationMark = !quotationMark
+			if !quotationMark && !literal {
+				literal = true
+				quotationMark = true
+			} else if quotationMark {
+				literal = false
+				quotationMark = false
+			}
 		}
 
 		// if bumbed into apostrophe and not in quotation mark literal,
 		// switch the literal state and quotation mark state
 		if r == runeApostrophe && !quotationMark && !inMultiLineLiteral && !multilineLiteralEdge && !escaped { // '
-			literal = !literal
-			apostrophe = !apostrophe
+			if !apostrophe && !literal {
+				literal = true
+				apostrophe = true
+			} else if apostrophe {
+				literal = false
+				apostrophe = false
+			}
 		}
 
 		if len(runeBuffer) == 1 && !literal && !unicode.IsDigit(r) {

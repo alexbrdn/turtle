@@ -285,7 +285,7 @@ func TestMarshalOptions(t *testing.T) {
 	assert.Equal(t, strings.TrimSpace(string(out)), strings.TrimSpace(`
 @base <http://example.org> .
 @prefix book: <http://example.org/books/> .
-</person/Mark_Twain> </relation/author> </books/Huckleberry_Finn> .
+</person/Mark_Twain> </relation/author> book:Huckleberry_Finn .
 `), "output was not equal")
 
 	// check for weird rdf-isms like using a blank anchor as a prefix
@@ -308,7 +308,7 @@ func TestMarshalOptions(t *testing.T) {
 	assert.Equal(t, strings.TrimSpace(string(out)), strings.TrimSpace(`
 @base <http://example.org> .
 @prefix book: <http://example.org/books#> .
-</person/Mark_Twain> </relation/author> </books#Huckleberry_Finn> .
+</person/Mark_Twain> </relation/author> book:Huckleberry_Finn .
 `), "output was not equal")
 }
 
@@ -337,4 +337,31 @@ func TestMarshalSubjectBaseURLTrailingSlash(t *testing.T) {
 	out, err := (&turtle.Config{Base: "http://example.org"}).Marshal(expected)
 	assert.NoError(t, err, "function Unmarshal should have returned no error")
 	assert.Equal(t, string(out), string(data), "function Unmarshal should have assigned correct values to the target triple")
+}
+
+func TestMarshalPreservesEmptyTypedLiteralAndUsesPrefixes(t *testing.T) {
+	// Triple with empty typed literal and annotation fields
+	target := []tripleWithAnnotationValues{
+		{
+			Subject:    "http://purl.org/dc/terms/abstract",
+			Predicate:  "http://purl.org/dc/terms/description",
+			Object:     "",
+			DataType:   "qudt:LatexString",
+			ObjectType: "literal",
+		},
+	}
+
+	config := turtle.Config{
+		Prefixes: map[string]string{
+			"dcterms": "http://purl.org/dc/terms/",
+		},
+	}
+
+	out, err := config.Marshal(target)
+	assert.NoError(t, err, "Marshal should not return error")
+
+	assert.Equal(t, `@prefix dcterms: <http://purl.org/dc/terms/> .
+dcterms:abstract dcterms:description ""^^qudt:LatexString .
+`, string(out), "Marshal produced unexpected output")
+
 }
