@@ -72,20 +72,29 @@ func marshalStruct(g *graph.Graph, v reflect.Value) error {
 
 		// pick correct part based on the tag value
 		var part int
+		var found bool
 		switch tag {
 		case "subject":
 			part = subject
+			found = true
 		case "predicate":
 			part = predicate
+			found = true
 		case "object":
 			part = object
+			found = true
 		case "label":
 			part = label
+			found = true
 		case "datatype":
 			part = datatype
+			found = true
 		case "objecttype":
 			part = objecttype
-		case "base", "prefix":
+			found = true
+		}
+
+		if !found {
 			continue
 		}
 
@@ -95,7 +104,7 @@ func marshalStruct(g *graph.Graph, v reflect.Value) error {
 			word = field.String()
 		}
 		// is field is pointer to string use the pointed value
-		if field.Kind() == reflect.Pointer && field.Type().Elem().Kind() == reflect.String && field.Elem().Kind() == reflect.String {
+		if field.Kind() == reflect.Pointer && !field.IsNil() && field.Type().Elem().Kind() == reflect.String {
 			word = field.Elem().String()
 		}
 
@@ -111,7 +120,7 @@ func marshalStruct(g *graph.Graph, v reflect.Value) error {
 		return ErrNoPredicateSpecified
 	}
 
-	if t[object] == "" {
+	if t[object] == "" && t[datatype] == "" && t[label] == "" {
 		return ErrNoObjectSpecified
 	}
 

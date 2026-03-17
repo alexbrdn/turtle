@@ -189,9 +189,13 @@ outer:
 			// check that the field is pointer to string
 			if pointerType.Kind() == reflect.String {
 
-				// omit empty strings
+				// omit empty strings unless it's the object and it has annotations
 				if len(word) == 0 {
-					continue
+					if tag == "object" && (t[label] != "" || t[datatype] != "") {
+						// proceed to set empty string
+					} else {
+						continue
+					}
 				}
 
 				// set value to the pointed string

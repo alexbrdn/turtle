@@ -29,15 +29,15 @@ func (g *Graph) sanitizeObject(obj object) string {
 }
 
 func (g *Graph) sanitize(str string, typ string, predicate bool) string {
-	if len(str) == 0 {
-		return str
-	}
-
 	if isBlankNode(str) {
 		return str
 	}
 
 	if typ == "iri" || (typ == "" && isIRI(str)) {
+		if str == "" {
+			return str
+		}
+
 		if str == "." && g.options.Base != "" {
 			return g.options.Base
 		}
@@ -49,6 +49,12 @@ func (g *Graph) sanitize(str string, typ string, predicate bool) string {
 		for key := range g.options.Prefixes {
 			if strings.HasPrefix(str, key+":") {
 				return str
+			}
+		}
+
+		for key, val := range g.options.Prefixes {
+			if strings.HasPrefix(str, val) {
+				return fmt.Sprintf("%s:%s", key, strings.TrimPrefix(str, val))
 			}
 		}
 
@@ -107,11 +113,23 @@ func isValidIRIChar(char rune) bool {
 
 func literalEdge(str string) string {
 	if !strings.ContainsRune(str, runeNewLine) {
+		if !strings.ContainsRune(str, runeQuotation) && !strings.ContainsRune(str, runeApostrophe) {
+			return `"`
+		}
+
 		if !strings.ContainsRune(str, runeQuotation) {
 			return `"`
 		}
 
-		return `'`
+		if !strings.ContainsRune(str, runeApostrophe) {
+			return `'`
+		}
+
+		return `"""`
+	}
+
+	if !strings.ContainsRune(str, runeQuotation) && !strings.ContainsRune(str, runeApostrophe) {
+		return `'''`
 	}
 
 	if strings.ContainsRune(str, runeApostrophe) {

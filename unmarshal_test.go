@@ -183,3 +183,46 @@ func TestUnmarshalSubjectURLTrailingSlash(t *testing.T) {
 	assert.NoError(t, err, "function Unmarshal should have returned no error")
 	assert.Equal(t, expected, target, "function Unmarshal should have assigned correct values to the target triple")
 }
+
+func TestUnmarshalHandlesEdgeCases(t *testing.T) {
+	rdf := `@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+dcterms:abstract
+  rdfs:isDefinedBy dcterms: ;
+  rdfs:description "a string with escaped \"double quotes\" and someone's single quote in it" ;
+  dcterms:description ""^^qudt:LatexString ;
+.
+`
+
+	var target []tripleWithAnnotationValues
+
+	// Unmarshal the Turtle string
+	err := turtle.Unmarshal([]byte(rdf), &target)
+	assert.NoError(t, err, "Unmarshal should not return error")
+
+	expected := []tripleWithAnnotationValues{
+		{
+			Subject:   "http://purl.org/dc/terms/abstract",
+			Predicate: "http://www.w3.org/2000/01/rdf-schema#isDefinedBy",
+			Object:    "http://purl.org/dc/terms/", // correctly expanded a CURIE with empty local part
+		},
+		{
+			Subject:   "http://purl.org/dc/terms/abstract",
+			Predicate: "http://www.w3.org/2000/01/rdf-schema#description",
+			Object:    "a string with escaped \\\"double quotes\\\" and someone's single quote in it", // does not stumble on quotes
+		},
+		{
+			Subject:   "http://purl.org/dc/terms/abstract",
+			Predicate: "http://purl.org/dc/terms/description",
+			Object:    "",
+		},
+	}
+
+	assert.Equal(t, len(expected), len(target), "Number of triples should match")
+	for i := range expected {
+		assert.Equal(t, expected[i].Subject, target[i].Subject, "Subject mismatch at index %d", i)
+		assert.Equal(t, expected[i].Predicate, target[i].Predicate, "Predicate mismatch at index %d", i)
+		assert.Equal(t, expected[i].Object, target[i].Object, "Object mismatch at index %d", i)
+	}
+}

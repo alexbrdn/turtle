@@ -17,7 +17,7 @@ var numberRegex = regexp.MustCompile(`^[-0-9]+(?:\.[0-9]+)?`)
 func expandPrefix(token string, value string) string {
 	i := strings.Index(token, ":")
 	if len(token) <= i+1 {
-		return ""
+		return fmt.Sprintf("<%s>", value)
 	} else {
 		if len(token) > i+2 && (token[i+1] == '/' || token[i+1] == '#') && value[len(value)-1] == token[i+1] {
 			// if characters exist for both, trim token since we were going to do that anyway
