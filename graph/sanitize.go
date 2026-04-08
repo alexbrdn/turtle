@@ -12,6 +12,11 @@ const (
 	runeNewLine    = '\u000A' // \n
 	runeApostrophe = '\u0027' // '
 	runeQuotation  = '\u0022' // "
+
+	delimQuote       = `"`
+	delimApos        = `'`
+	delimTripleQuote = `"""`
+	delimTripleApos  = `'''`
 )
 
 func (g *Graph) sanitizeObject(obj object) string {
@@ -52,10 +57,15 @@ func (g *Graph) sanitize(str string, typ string, predicate bool) string {
 			}
 		}
 
+		prefix, prefixIRI := "", ""
+		// find the longest match
 		for key, val := range g.options.Prefixes {
-			if strings.HasPrefix(str, val) {
-				return fmt.Sprintf("%s:%s", key, strings.TrimPrefix(str, val))
+			if strings.HasPrefix(str, val) && len(val) > len(prefixIRI) {
+				prefix, prefixIRI = key, val
 			}
+		}
+		if prefix != "" {
+			return fmt.Sprintf("%s:%s", prefix, strings.TrimPrefix(str, prefixIRI))
 		}
 
 		if g.options.Base != "" && strings.HasPrefix(str, g.options.Base) {
@@ -109,32 +119,26 @@ func isValidIRIChar(char rune) bool {
 		unicode.Is(unicode.Arabic, char) || unicode.Is(unicode.Cyrillic, char)
 }
 
-// TODO consts
-
 func literalEdge(str string) string {
-	if !strings.ContainsRune(str, runeNewLine) {
-		if !strings.ContainsRune(str, runeQuotation) && !strings.ContainsRune(str, runeApostrophe) {
-			return `"`
-		}
+	hasNL := strings.ContainsRune(str, runeNewLine)
+	hasQuote := strings.ContainsRune(str, runeQuotation)
+	hasApos := strings.ContainsRune(str, runeApostrophe)
 
-		if !strings.ContainsRune(str, runeQuotation) {
-			return `"`
+	if !hasNL {
+		if !hasQuote {
+			return delimQuote
 		}
-
-		if !strings.ContainsRune(str, runeApostrophe) {
-			return `'`
+		if !hasApos {
+			return delimApos
 		}
-
-		return `"""`
+		return delimTripleQuote
 	}
 
-	if !strings.ContainsRune(str, runeQuotation) && !strings.ContainsRune(str, runeApostrophe) {
-		return `'''`
+	if !hasQuote && !hasApos {
+		return delimTripleApos
 	}
-
-	if strings.ContainsRune(str, runeApostrophe) {
-		return `"""`
+	if hasApos {
+		return delimTripleQuote
 	}
-
-	return `'''`
+	return delimTripleApos
 }
