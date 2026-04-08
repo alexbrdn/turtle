@@ -65,7 +65,10 @@ func (g *Graph) sanitize(str string, typ string, predicate bool) string {
 			}
 		}
 		if prefix != "" {
-			return fmt.Sprintf("%s:%s", prefix, strings.TrimPrefix(str, prefixIRI))
+			local := strings.TrimPrefix(str, prefixIRI)
+			if isValidLocalPart(local) {
+				return fmt.Sprintf("%s:%s", prefix, local)
+			}
 		}
 
 		if g.options.Base != "" && strings.HasPrefix(str, g.options.Base) {
@@ -114,6 +117,36 @@ func isValidIRIChar(char rune) bool {
 		char == '$' || char == '&' || char == '\'' || char == '(' ||
 		char == ')' || char == '*' || char == '+' || char == ',' ||
 		char == ';' || char == '=' || char == '%' ||
+		unicode.Is(unicode.Han, char) || unicode.Is(unicode.Hiragana, char) ||
+		unicode.Is(unicode.Katakana, char) || unicode.Is(unicode.Latin, char) ||
+		unicode.Is(unicode.Arabic, char) || unicode.Is(unicode.Cyrillic, char)
+}
+
+func isValidLocalPart(local string) bool {
+	if local == "" {
+		return true
+	}
+
+	for i, char := range local {
+		if !isValidLocalPartChar(char) {
+			return false
+		}
+
+		if i == 0 && char == '.' {
+			return false
+		}
+
+		if i == len(local)-1 && char == '.' {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isValidLocalPartChar(char rune) bool {
+	return unicode.IsLetter(char) || unicode.IsDigit(char) ||
+		char == '-' || char == '.' || char == '_' || char == '~' ||
 		unicode.Is(unicode.Han, char) || unicode.Is(unicode.Hiragana, char) ||
 		unicode.Is(unicode.Katakana, char) || unicode.Is(unicode.Latin, char) ||
 		unicode.Is(unicode.Arabic, char) || unicode.Is(unicode.Cyrillic, char)
